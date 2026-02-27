@@ -2,8 +2,12 @@ name: Daily Export Issues CSV
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # Runs daily at 6 AM UTC
-  workflow_dispatch:      # Allows manual run
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
 
 jobs:
   export:
@@ -13,12 +17,17 @@ jobs:
       - name: Fetch Issues
         run: |
           curl -H "Accept: application/vnd.github+json" \
+               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
                https://api.github.com/repos/${{ github.repository }}/issues \
                > issues.json
 
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
       - name: Convert JSON to CSV
         run: |
-          sudo apt-get install -y jq
           echo "number,title,state,created_at" > issues.csv
           jq -r '.[] | [.number, .title, .state, .created_at] | @csv' issues.json >> issues.csv
 
