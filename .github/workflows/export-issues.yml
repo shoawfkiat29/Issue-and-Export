@@ -1,4 +1,4 @@
-name: Export Issues CSV (Manual)
+name: Export Issues CSV (Manual) # updated
 
 on:
   workflow_dispatch:
