@@ -1,4 +1,4 @@
-name: CI Auto Issue Test   # updated
+name: CI Auto Issue Test
 
 on:
   push:
