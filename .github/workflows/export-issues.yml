@@ -1,7 +1,7 @@
 name: Export Issues CSV (Manual)
 
 on:
-  workflow_dispatch:   # Only runs manually
+  workflow_dispatch:
 
 jobs:
   export:
@@ -11,17 +11,22 @@ jobs:
       - name: Fetch Issues
         run: |
           curl -H "Accept: application/vnd.github+json" \
+               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
                https://api.github.com/repos/${{ github.repository }}/issues \
-               > issues.json
+               -o issues.json
 
-      - name: Convert JSON to CSV
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Create CSV
         run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
           echo "number,title,state,created_at" > issues.csv
-          jq -r '.[] | [.number, .title, .state, .created_at] | @csv' issues.json >> issues.csv
+          jq -r '.[] | [.number, .title, .state, .created_at] | @csv' issues.json >> issues.csv || true
 
-      - name: Upload CSV File
+      - name: Show Files (Debug)
+        run: ls -la
+
+      - name: Upload CSV
         uses: actions/upload-artifact@v4
         with:
           name: exported-issues
