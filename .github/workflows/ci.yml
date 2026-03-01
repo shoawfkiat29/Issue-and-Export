@@ -1,4 +1,4 @@
-name: CI Auto Issue Test
+name: CI with Auto Issue
 
 on:
   push:
