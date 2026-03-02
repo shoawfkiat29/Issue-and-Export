@@ -1,7 +1,7 @@
 {
   "jira": {
     "baseUrl": "https://Gighat.atlassian.net",
-    "projectKey": "GIG",
+    "projectKey": "GIGHA",
     "defaultIssueType": "Task"
   },
   "fieldMapping": {
