@@ -26,7 +26,6 @@ async function fetchGitHubIssues() {
     }
   );
 
-  // Ignore pull requests (GitHub returns PRs also)
   return res.data.filter(issue => !issue.pull_request);
 }
 
@@ -56,62 +55,62 @@ async function jiraIssueExists(githubIssueNumber) {
 
   return res.data.total > 0;
 }
+
 // ------------------------------------
 // 3️⃣ Map GitHub Issue → Jira Format
 // ------------------------------------
 function mapGitHubToJira(issue) {
   const labelNames = issue.labels.map(l => l.name);
 
-  // Priority detection from labels
   let priorityName = "Medium";
   if (labelNames.includes("high")) priorityName = "High";
   if (labelNames.includes("low")) priorityName = "Low";
 
-  // Optional assignee mapping (edit manually)
-  const userMap = {
-    // "githubUsername": "jiraAccountId"
+  const descriptionADF = {
+    type: "doc",
+    version: 1,
+    content: [
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: `GitHub Issue #${issue.number}` }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: `GitHub Link: ${issue.html_url}` }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: `Created: ${issue.created_at}` }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: `Updated: ${issue.updated_at}` }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: issue.body || "No description provided." }
+        ]
+      }
+    ]
   };
 
-  let assigneeField = undefined;
-  if (issue.assignee && userMap[issue.assignee.login]) {
-    assigneeField = {
-      id: userMap[issue.assignee.login]
-    };
-  }
-
-  const fields = {
+  return {
     project: { key: config.jira.projectKey },
-
     summary: issue.title,
-
-    description: `
-GitHub Issue #${issue.number}
-GitHub Link: ${issue.html_url}
-
-Created: ${issue.created_at}
-Updated: ${issue.updated_at}
-
--------------------------------------
-
-${issue.body || "No description provided."}
-    `,
-
-    issuetype: {
-      name: config.jira.defaultIssueType
-    },
-
+    description: descriptionADF,
+    issuetype: { name: config.jira.defaultIssueType },
     labels: labelNames,
-
-    priority: {
-      name: priorityName
-    }
+    priority: { name: priorityName }
   };
-
-  if (assigneeField) {
-    fields.assignee = assigneeField;
-  }
-
-  return fields;
 }
 
 // ------------------------------------
