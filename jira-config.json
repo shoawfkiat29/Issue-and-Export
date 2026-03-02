@@ -1,0 +1,14 @@
+{
+  "jira": {
+    "baseUrl": "https://GigHat.atlassian.net",
+    "projectKey": "DEV",
+    "defaultIssueType": "Task"
+  },
+  "fieldMapping": {
+    "title": "summary",
+    "body": "description",
+    "priority": "priority",
+    "assignee": "assignee",
+    "labels": "labels"
+  }
+}
