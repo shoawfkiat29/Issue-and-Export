@@ -34,22 +34,28 @@ async function fetchGitHubIssues() {
 // 2️⃣ Check if Jira Issue Already Exists
 // ------------------------------------
 async function jiraIssueExists(githubIssueNumber) {
-  const jql = `project = ${config.jira.projectKey} AND text ~ "GitHub Issue #${githubIssueNumber}"`;
 
-  const res = await axios.get(
-    `${jiraBase}/rest/api/3/search`,
+  const jqlQuery = `project = ${config.jira.projectKey} AND text ~ "GitHub Issue #${githubIssueNumber}"`;
+
+  const res = await axios.post(
+    `${jiraBase}/rest/api/3/search/jql`,
     {
-      params: { jql },
+      jql: jqlQuery,
+      maxResults: 1
+    },
+    {
       auth: {
         username: jiraEmail,
         password: jiraToken,
+      },
+      headers: {
+        "Content-Type": "application/json"
       }
     }
   );
 
   return res.data.total > 0;
 }
-
 // ------------------------------------
 // 3️⃣ Map GitHub Issue → Jira Format
 // ------------------------------------
