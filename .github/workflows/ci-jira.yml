@@ -1,36 +1,44 @@
-name: Create Jira Ticket
+name: CI with Jira Ticket
 
 on:
-  issues:
-    types: [opened]
+  push:
+    branches:
+      - main
 
 permissions:
-  issues: read
   contents: read
 
 jobs:
-  create-jira-ticket:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Create Jira Issue
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Simulate Test Failure
+        run: |
+          echo "Running tests..."
+          exit 1
+
+      - name: Create Jira Ticket if CI fails
+        if: failure()
         env:
           JIRA_BASE_URL: https://gighat.atlassian.net
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           JIRA_PROJECT_KEY: GIG
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          ISSUE_TITLE="${{ github.event.issue.title }}"
-          ISSUE_BODY="${{ github.event.issue.body }}"
-          ISSUE_URL="${{ github.event.issue.html_url }}"
-          ISSUE_AUTHOR="${{ github.event.issue.user.login }}"
 
-          DESCRIPTION="$ISSUE_BODY
+          DESCRIPTION="CI pipeline failed.
 
-          ---
-          Imported from GitHub
-          GitHub Issue: $ISSUE_URL
-          Author: $ISSUE_AUTHOR"
+          Repository: ${{ github.repository }}
+          Branch: ${{ github.ref_name }}
+
+          GitHub Run: $RUN_URL
+          Commit: ${{ github.sha }}"
 
           curl -X POST \
             -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
@@ -38,7 +46,7 @@ jobs:
             --data "{
               \"fields\": {
                 \"project\": {\"key\": \"$JIRA_PROJECT_KEY\"},
-                \"summary\": \"$ISSUE_TITLE\",
+                \"summary\": \"🚨 CI Pipeline Failed - ${{ github.repository }}\",
                 \"description\": {
                   \"type\": \"doc\",
                   \"version\": 1,
