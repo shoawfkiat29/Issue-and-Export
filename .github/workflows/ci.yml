@@ -5,29 +5,43 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Force Failure (Test)
+        id: test_step
         run: |
           echo "Testing failure..."
           exit 1
+        continue-on-error: true
 
       - name: Create Issue if Failed
-        if: failure()
+        if: steps.test_step.outcome == 'failure'
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.create({
+            const issue = await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: "🚨 CI Failed Automatically",
               body: `Workflow failed.
-              Repo: ${context.repo.repo}
-              Run ID: ${context.runId}`,
+
+Repository: ${context.repo.repo}
+Branch: ${context.ref}
+Run ID: ${context.runId}
+
+Check logs:
+https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               labels: ["bug", "ci-failure"]
-            })
+            });
+
+            console.log("Issue created:", issue.data.html_url);
