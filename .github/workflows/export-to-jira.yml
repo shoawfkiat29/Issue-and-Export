@@ -1,26 +1,56 @@
-name: Export GitHub Issues to Jira
+name: Create Jira Ticket
 
 on:
-  workflow_dispatch:
+  issues:
+    types: [opened]
 
 permissions:
-  contents: read
   issues: read
+  contents: read
 
 jobs:
-  export:
+  create-jira-ticket:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: npm install axios
-
-      - name: Run Export Script
-        run: node export.js
+      - name: Create Jira Issue
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JIRA_BASE_URL: https://gighat.atlassian.net
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_PROJECT_KEY: GIG
+        run: |
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+          ISSUE_BODY="${{ github.event.issue.body }}"
+          ISSUE_URL="${{ github.event.issue.html_url }}"
+          ISSUE_AUTHOR="${{ github.event.issue.user.login }}"
+
+          DESCRIPTION="$ISSUE_BODY
+
+          ---
+          Imported from GitHub
+          GitHub Issue: $ISSUE_URL
+          Author: $ISSUE_AUTHOR"
+
+          curl -X POST \
+            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "{
+              \"fields\": {
+                \"project\": {\"key\": \"$JIRA_PROJECT_KEY\"},
+                \"summary\": \"$ISSUE_TITLE\",
+                \"description\": {
+                  \"type\": \"doc\",
+                  \"version\": 1,
+                  \"content\": [{
+                    \"type\": \"paragraph\",
+                    \"content\": [{
+                      \"type\": \"text\",
+                      \"text\": \"$DESCRIPTION\"
+                    }]
+                  }]
+                },
+                \"issuetype\": {\"name\": \"Task\"}
+              }
+            }" \
+            $JIRA_BASE_URL/rest/api/3/issue
