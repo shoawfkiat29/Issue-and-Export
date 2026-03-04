@@ -9,6 +9,9 @@
     "body": "description",
     "priority": "priority",
     "assignee": "assignee",
-    "labels": "labels"
+    "labels": "labels",
+    "state": "status",
+    "created_at": "created",
+    "updated_at": "updated"
   }
 }
