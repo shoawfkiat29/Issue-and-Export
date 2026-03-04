@@ -14,22 +14,50 @@ const jiraBase = process.env.JIRA_BASE_URL;
 const githubRepo = process.env.GITHUB_REPOSITORY;
 
 // ------------------------------------
-// 1️⃣ Fetch GitHub Issues
+// ------------------------------------
+// 1️⃣ Fetch GitHub Issues (Last 24 Hours)
 // ------------------------------------
 async function fetchGitHubIssues() {
-  const res = await axios.get(
-    `https://api.github.com/repos/${githubRepo}/issues`,
-    {
-      headers: {
-        Authorization: `Bearer ${githubToken}`,
-      },
-    }
-  );
 
-  return res.data.filter(issue => !issue.pull_request);
+  // Get time for 24 hours ago
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const since = yesterday.toISOString();
+
+  console.log(`Fetching GitHub issues updated since: ${since}`);
+
+  try {
+
+    const res = await axios.get(
+      `https://api.github.com/repos/${githubRepo}/issues`,
+      {
+        headers: {
+          Authorization: `Bearer ${githubToken}`,
+        },
+        params: {
+          since: since
+        }
+      }
+    );
+
+    // Remove pull requests (GitHub returns PRs in issues API)
+    const issues = res.data.filter(issue => !issue.pull_request);
+
+    console.log(`Fetched ${issues.length} recent issues`);
+
+    return issues;
+
+  } catch (error) {
+
+    console.error(
+      "Error fetching GitHub issues:",
+      error.response?.data || error.message
+    );
+
+    return [];
+  }
 }
-
-// ------------------------------------
 // 2️⃣ Check if Jira Issue Already Exists
 // ------------------------------------
 async function jiraIssueExists(githubIssueNumber) {
