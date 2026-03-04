@@ -1,4 +1,4 @@
-name: CI Auto Issue Test
+name: CI Failure Incident Creator
 
 on:
   push:
@@ -17,35 +17,54 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Force Failure (Test)
+      - name: Run Tests
         id: test_step
         run: |
-          echo "Testing failure..."
+          echo "Running CI tests..."
           exit 1
         continue-on-error: true
 
-      - name: Create Issue if Failed
+      - name: Create Incident Issue
         if: steps.test_step.outcome == 'failure'
         uses: actions/github-script@v7
         with:
           script: |
-            const body =
-              "Workflow failed.\n\n" +
-              "Repository: " + context.repo.repo + "\n" +
-              "Branch: " + context.ref + "\n" +
-              "Run ID: " + context.runId + "\n\n" +
-              "Check logs:\n" +
-              "https://github.com/" +
-              context.repo.owner + "/" +
-              context.repo.repo +
-              "/actions/runs/" + context.runId;
+            const repo = context.repo.repo;
+            const owner = context.repo.owner;
+            const runId = context.runId;
+            const branch = context.ref.replace("refs/heads/", "");
+            const commit = context.sha;
+            const actor = context.actor;
+
+            const issueBody =
+              "## 🚨 CI Pipeline Failure\n\n" +
+              "**Repository:** " + repo + "\n" +
+              "**Branch:** " + branch + "\n" +
+              "**Commit:** " + commit + "\n" +
+              "**Triggered by:** " + actor + "\n" +
+              "**Run ID:** " + runId + "\n\n" +
+
+              "### 🔎 Failure Details\n" +
+              "The CI workflow failed during execution.\n\n" +
+
+              "### 📜 Logs\n" +
+              "View detailed logs here:\n" +
+              "https://github.com/" + owner + "/" + repo + "/actions/runs/" + runId + "\n\n" +
+
+              "### 🛠 Recommended Investigation Steps\n" +
+              "- Check CI logs\n" +
+              "- Review failing tests\n" +
+              "- Verify recent commits\n\n" +
+
+              "### 🤖 Generated Automatically\n" +
+              "This issue was created automatically by the CI workflow.";
 
             const issue = await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: "🚨 CI Failed Automatically",
-              body: body,
-              labels: ["bug", "ci-failure"]
+              owner: owner,
+              repo: repo,
+              title: "🚨 CI Pipeline Failed",
+              body: issueBody,
+              labels: ["ci-failure", "bug", "automation"]
             });
 
-            console.log("Issue created:", issue.data.html_url);
+            console.log("Incident issue created:", issue.data.html_url);
